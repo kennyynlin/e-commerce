@@ -3,4 +3,4 @@ mysql:
 server:
 	mvn -f ./backend spring-boot:run
 
-.PHONY: mysql
+.PHONY: mysql server
