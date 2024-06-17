@@ -1,49 +1,49 @@
 package com.kennyynlin.ecommerce.service;
 
-import com.kennyynlin.ecommerce.dao.CustomerRepository;
 import com.kennyynlin.ecommerce.dto.Purchase;
 import com.kennyynlin.ecommerce.dto.PurchaseResponse;
-import com.kennyynlin.ecommerce.entity.Customer;
-import com.kennyynlin.ecommerce.entity.Order;
-import com.kennyynlin.ecommerce.entity.OrderItem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Set;
-import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @Service
 public class CheckoutServiceImpl implements CheckoutService{
+    private final EmailService emailService;
+    private final OrderService orderService;
 
-    private final CustomerRepository customerRepository;
+    private final ExecutorService executor = Executors.newFixedThreadPool(2);
+
+    private static final Logger logger = LoggerFactory.getLogger(CheckoutServiceImpl.class);
 
     @Autowired
-    public CheckoutServiceImpl(CustomerRepository customerRepository) {
-        this.customerRepository = customerRepository;
+    public CheckoutServiceImpl(EmailService emailService, OrderService orderService) {
+        this.emailService = emailService;
+        this.orderService = orderService;
     }
 
     @Override
-    @Transactional
-    public PurchaseResponse placeOrder(Purchase purchase) {
-        Order order = purchase.getOrder();
-
-        String orderTrackingNumber = generateOrderTrackingNumber();
-        order.setOrderTrackingNumber(orderTrackingNumber);
-
-        Set<OrderItem> orderItems = purchase.getOrderItems();
-        orderItems.forEach(order::add);
-
-        order.setBillingAddress(purchase.getBillingAddress());
-        order.setShippingAddress(purchase.getShippingAddress());
-
-        Customer customer = purchase.getCustomer();
-        customer.add(order);
-        customerRepository.save(customer);
-        return new PurchaseResponse(orderTrackingNumber);
-    }
-
-    private String generateOrderTrackingNumber() {
-        return UUID.randomUUID().toString();
+    public PurchaseResponse process(Purchase purchase) {
+        try {
+            executor.submit(() -> {
+                try {
+                    emailService.sendEmail(purchase);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            Future<PurchaseResponse> future = executor.submit(() -> orderService.place(purchase));
+            return future.get();
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error("Error processing purchase: {}", e.getMessage(), e);
+            return null;
+        } finally {
+            executor.shutdown();
+        }
     }
 }
