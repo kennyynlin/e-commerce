@@ -9,41 +9,38 @@ import org.springframework.stereotype.Service;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 @Service
 public class CheckoutServiceImpl implements CheckoutService{
     private final EmailService emailService;
     private final OrderService orderService;
-
-    private final ExecutorService executor = Executors.newFixedThreadPool(2);
+    private final ExecutorService executorService;
 
     private static final Logger logger = LoggerFactory.getLogger(CheckoutServiceImpl.class);
 
     @Autowired
-    public CheckoutServiceImpl(EmailService emailService, OrderService orderService) {
+    public CheckoutServiceImpl(EmailService emailService, OrderService orderService, ExecutorService executorService) {
         this.emailService = emailService;
         this.orderService = orderService;
+        this.executorService = executorService;
     }
 
     @Override
     public PurchaseResponse process(Purchase purchase) {
         try {
-            executor.submit(() -> {
+            executorService.submit(() -> {
                 try {
                     emailService.sendEmail(purchase);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             });
-            Future<PurchaseResponse> future = executor.submit(() -> orderService.place(purchase));
+            Future<PurchaseResponse> future = executorService.submit(() -> orderService.place(purchase));
             return future.get();
         } catch (InterruptedException | ExecutionException e) {
             logger.error("Error processing purchase: {}", e.getMessage(), e);
             return null;
-        } finally {
-            executor.shutdown();
         }
     }
 }
