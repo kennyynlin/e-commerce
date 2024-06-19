@@ -42,7 +42,7 @@ public class CheckoutServiceImplMockTest {
     public void placeOrderTest() {
         Purchase purchase = createPurchase();
         doReturn(purchase.getCustomer()).when(customerRepository).save(any(Customer.class));
-        PurchaseResponse purchaseResponse = checkoutService.placeOrder(purchase);
+        PurchaseResponse purchaseResponse = checkoutService.process(purchase);
 
         assertNotNull(purchaseResponse.getOrderTrackingNUmber());
         Mockito.verify(customerRepository, times(1)).save(any(Customer.class));
