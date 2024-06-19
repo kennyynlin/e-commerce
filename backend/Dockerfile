@@ -8,7 +8,7 @@ COPY src ./src
 
 RUN mvn clean package
 
-FROM amazoncorretto:21-alpine
+FROM azul/zulu-openjdk:17-jre-latest
 
 WORKDIR /app
 
