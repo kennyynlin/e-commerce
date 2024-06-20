@@ -15,9 +15,6 @@ import java.util.concurrent.TimeUnit;
 public class ExecutorConfig {
     private ExecutorService executorService;
 
-    @Value("${executor.thread.count}")
-    private int threadCount;
-
     @Value("${executor.timeout.seconds}")
     private int timeoutInSeconds;
 
@@ -27,7 +24,7 @@ public class ExecutorConfig {
 
     @Bean
     public ExecutorService executorService() {
-        this.executorService = Executors.newFixedThreadPool(threadCount);
+        this.executorService = Executors.newCachedThreadPool();
         return this.executorService;
     }
 
