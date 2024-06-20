@@ -38,6 +38,19 @@ services:
     networks:
       - app-network
 
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    volumes:
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
