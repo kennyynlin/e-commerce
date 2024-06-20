@@ -42,7 +42,8 @@ services:
     image: grafana/grafana
     container_name: grafana
     volumes:
-      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
     ports:
       - "3000:3000"
     restart: unless-stopped
